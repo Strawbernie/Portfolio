@@ -1,0 +1,5 @@
+/// When the player enters the room
+audio_destroy_stream(new_soundtrack)
+if !(audio_is_playing(REAL_MAIN_SOUNDRACK)){
+   audio_play_sound(REAL_MAIN_SOUNDRACK,1,false)
+}
