@@ -1,0 +1,185 @@
+/// @description Insert description here
+// You can write your code in this editor
+
+// Check keys for movement
+if (global.playerControl == true) {
+moveRight = keyboard_check(vk_right) or keyboard_check(ord("D"));
+moveUp = keyboard_check(vk_up) or keyboard_check(ord("W"));
+moveLeft = keyboard_check(vk_left) or keyboard_check(ord("A"));
+moveDown = keyboard_check(vk_down) or keyboard_check(ord("S"));
+}
+if (global.playerControl == false) {
+moveRight = 0;
+moveUp = 0;
+moveLeft = 0;
+moveDown = 0;
+}
+// Calculate movement
+vx = ((moveRight - moveLeft) * walkSpeed);
+vy = ((moveDown - moveUp) * walkSpeed);
+
+// If Idle
+if (vx == 0 && vy == 0) 
+
+{
+// Change idle Sprite based on last direction
+switch dir {
+case 0: sprite_index = mc_idle_right; break;
+case 1: sprite_index = mc_idle_back; break;
+case 2: sprite_index = mc_idle_left; break;
+case 3: sprite_index = mc_idle_forward; break;
+}
+}
+// If moving
+if (vx != 0 || vy != 0) {
+if !collision_point(x+vx,y,obj_par_environment,true,true) {
+x += vx;
+}
+if !collision_point(x,y+vy,obj_par_environment,true,true) {
+y += vy;
+}
+//footstep
+if (vx != 0 || vy != 0) & (counter_footsteps==0){
+    audio_play_sound(footstep, 8, false);
+    counter_footsteps = 50; // number of steps to wait before trying to play the sound again
+}
+else if (counter_footsteps>0) counter_footsteps--;
+// Change walking Sprite based on direction
+if (vx > 0) {
+sprite_index = mc_running_right;
+dir = 0;
+}
+if (vx < 0) {
+sprite_index = mc_running_left;
+dir = 2;
+}
+if (vy > 0) {
+sprite_index = mc_running_forward;
+dir = 3;
+}
+if (vy < 0) {
+sprite_index = mc_running_back;
+dir = 1;
+}
+}
+// Depth sorting
+depth =-y;
+// Check for collision with Objects
+nearbyObject = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_par_environment,false,true);
+if nearbyObject {
+// do something
+//show_debug_message("obj_player has found an Object!");
+}
+if !nearbyObject {
+// do something else
+//show_debug_message("obj_player hasn't found anything");
+}
+// Check for collision with Text
+nearbyText = collision_rectangle(x-textRange,y-
+textRange,x+textRange,y+textRange,obj_object,false,true);
+if nearbyText {
+	// Pop up prompt
+if (npcPrompt == noone || npcPrompt == undefined) {
+npcPrompt = scr_showPrompt(nearbyText,nearbyText.x,nearbyText.y-50);
+}
+
+// do something
+//show_debug_message("obj_player has found an NPC!");
+}
+if !nearbyText {
+// Reset prompt
+if (hasUsed == true) {
+hasUsed = false;
+}
+// Get rid of prompt
+scr_dismissPrompt(npcPrompt,0);
+//show_debug_message("obj_player hasn't found anything");
+	}
+	// Check for collision with NPCs
+nearbyNPC = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_par_npc,false,true);
+if nearbyNPC {
+// do something
+//show_debug_message("obj_player has found an NPC!");
+}
+if !nearbyNPC {
+// do something else
+//show_debug_message("obj_player hasn't found anything");
+}
+// Check for collision with Doormat
+nearbyDoormat = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_doormatv,false,true);
+// Check for collision with Desk
+nearbyDesk = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_deskroom,false,true);
+// Check for collision with Police
+nearbyPolice = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_police,false,true);
+if instance_exists(obj_police2) && nearbyPolice {
+    room_goto(newspaper_caught)
+}
+// Check for collision with Trap
+nearbyTrap = collision_rectangle(x-trapRange,y-
+trapRange,x+trapRange,y+trapRange,obj_trapControl,false,true);
+if instance_exists(obj_flamethrowertrap) && nearbyTrap {
+    room_goto(trapRoom)
+}
+//Create textbox
+if (keyboard_check_pressed(ord("E")))
+{
+	// Check for collision with Text
+nearbyText = collision_rectangle(x-textRange,y-
+textRange,x+textRange,y+textRange,obj_object,false,true);
+	if (!instance_exists(oTextbox)) && nearbyText {
+		// Create
+		audio_play_sound(talking, 1, false)
+		var _tb = instance_create_layer(0, 0, "Instances", oTextbox);
+		// Add messages to textbox's list
+		var _list = _tb.messages;
+	
+		for (var i=0; i<array_length_1d(nearbyText.msg); i++) {
+			var _arr = nearbyText.msg [i];
+		
+			ds_list_add(_list, _arr);
+		
+		}
+	}
+	
+	    else {
+			audio_destroy_stream(talking)
+	        instance_destroy(oTextbox);
+	    }
+	}
+
+nearbySkull = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_cursedSkull,false,true);
+if instance_exists(obj_cursedSkull) && nearbySkull {
+sprite_index = spr_mcCursed
+global.playerControl = false
+}
+else {
+global.playerControl = true
+}
+// Check for collision with Ghost
+nearbyGhost = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_ghost,false,true);
+if instance_exists(obj_ghost) && nearbyGhost {
+    room_goto(hauntedRoom)
+}
+// Check for collision with Ghost
+nearbySpikes = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_spiketrap3,false,true);
+if instance_exists(obj_spiketrap3) && nearbySpikes {
+    room_goto(hauntedRoom)
+}
+	// Check for collision with Ghost
+nearbySpikes1 = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_spiketrap4,false,true);
+if instance_exists(obj_spiketrap4) && nearbySpikes1 {
+    room_goto(hauntedRoom)
+}
+nearbyNormal = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_normal_idle,false,true);
+nearbyHaunted = collision_rectangle(x-lookRange,y-
+lookRange,x+lookRange,y+lookRange,obj_haunted_idle,false,true);
