@@ -1,0 +1,13 @@
+timer2--;
+
+if (timer2 <=0) {
+	timer2 = time2;
+	sprite_index = spr_spiketrapActive
+}
+
+timer3--;
+
+if (timer3 <=0) {
+	timer3 = time3;
+	sprite_index = noone
+}
