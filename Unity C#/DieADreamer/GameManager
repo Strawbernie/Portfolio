@@ -1,0 +1,508 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using TMPro;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+public class GameManager : MonoBehaviour
+{
+public List<Cards> deck = new List<Cards>();
+    public List<Cards> discardPile = new List<Cards>();
+    public Transform[] cardSlots;
+    public bool[] availableCardSlots;
+    public Transform OpponentSlot;
+    public GameObject Opponent;
+    public OpponentStats opponentStats;
+    PlayerStats playerStats;
+    public HealthBar hpBar;
+    public HealthBar PlayerhpBar;
+    public GameObject NoEnergy;
+    public TextMeshProUGUI energyText;
+    public TextMeshProUGUI energyNumber;
+    public int cardsDrawn;
+    public Animator animator;
+    public GameObject Deck;
+    public Image PlayerAnimation;
+    public Image OpponentAnimation;
+    public bool isPlayersTurn = true;
+    public TextMeshProUGUI deckSizeText;
+    public TextMeshProUGUI discardSizeText;
+    public TextMeshProUGUI damageTaken;
+    public GameObject BoyVisual;
+    public GameObject GirlVisual;
+    public GameObject WispCard;
+    public GameObject FetchCard;
+    public GameObject WispBomb;
+    public GameObject coinWall;
+    public GameObject Rewards;
+    public GameObject Textbox;
+    public TextMeshProUGUI textbox;
+    public Transform RewardSlot;
+    bool hasRewarded;
+    public AudioClip Theme;
+    public AudioClip mainTheme;
+    AudioSource AS;
+    public GameObject Rain;
+    public int FetchSpeed;
+    bool FetchEnabled;
+    //Combat Animations
+    public Image BashAnimation;
+    public Image CryAnimation;
+    public Image BlockAnimation;
+    public Image HealAnimation;
+    public GameObject FetchAnimation;
+    public GameObject BossText;
+    public int bossStage;
+    public static bool hasBattled;
+    public GameObject Tutorial;
+    int throws;
+
+    private void Awake()
+    {
+        AS = GameObject.FindObjectOfType<AudioSource>();
+        AS.clip = Theme;
+        AS.Play();
+    }
+    private void Start()
+    {
+        if (StatsManager.isBoy)
+        {
+            BoyVisual.SetActive(true);
+            GirlVisual.SetActive(false);
+        }
+        if(!hasBattled)
+        {
+            Tutorial.SetActive(true);  
+        }
+        if(Manager.addedWispCard)
+        {
+            deck.Add(WispCard.GetComponent<Cards>());
+        }
+        if (Manager.addedFetchCard)
+        {
+            deck.Add(FetchCard.GetComponent<Cards>());
+        }
+        if (Manager.addedWispBomb)
+        {
+            deck.Add(WispBomb.GetComponent<Cards>());
+        }
+        if (Manager.addedCoinWall)
+        {
+            deck.Add(coinWall.GetComponent<Cards>());
+        }
+        Opponent =Instantiate(StatsManager.opponentPrefab);
+        Opponent.transform.position = OpponentSlot.position;
+        opponentStats = FindObjectOfType<OpponentStats>();
+        playerStats = FindObjectOfType<PlayerStats>();
+        energyNumber.text = ("" + playerStats.mentalEnergy);
+        if (StatsManager.boneArmor)
+        {
+            playerStats.block++;
+            PlayerhpBar.block.text = ("" + playerStats.block);
+        }
+        if (Rewards.activeSelf)
+        {
+            Rewards.SetActive(false);
+        }
+        Invoke("StartDrawing",.5f);
+        hasBattled= true;
+    }
+    public void EndTurn()
+    {
+        if (isPlayersTurn)
+        {
+            Cards[] UnusedCards = FindObjectsOfType<Cards>();
+            foreach (Cards cards in UnusedCards)
+            {
+                cards.MoveToDiscardPile();
+            }
+            playerStats.mentalEnergy= 3;
+            energyNumber.text = ("" + playerStats.mentalEnergy);
+            cardsDrawn = 0;
+            opponentStats.block = 0;
+            if (playerStats.vulnerability > 0){
+                playerStats.vulnerability--;
+                if (playerStats.vulnerability <= 0)
+                {
+                    PlayerhpBar.RemoveEffects(PlayerhpBar.Vulnerability);
+                }
+            }
+            if (playerStats.weakened > 0)
+            {
+                playerStats.weakened--;
+                if (playerStats.weakened <= 0)
+                {
+                    PlayerhpBar.RemoveEffects(PlayerhpBar.Weakened);
+                }
+            }
+            hpBar.block.text = ("" + opponentStats.block);
+            isPlayersTurn = false;
+
+            Invoke("StartDrawing", .5f);
+        }
+    }
+    public void StartDrawing()
+    {
+        Invoke("DrawCard", .1f);
+        Invoke("DrawCard", .2f);
+        Invoke("DrawCard", .3f);
+        Invoke("DrawCard", .4f);
+        Invoke("DrawCard", .5f);
+    }
+    public void DrawCard()
+    {
+        if (isPlayersTurn)
+        {
+            if (deck.Count >= 1)
+            {
+                if (cardsDrawn < 5)
+                {
+                    Cards randCard = deck[Random.Range(0, deck.Count)];
+
+                    for (int i = 0; i < availableCardSlots.Length; i++)
+                    {
+                        if (availableCardSlots[i])
+                        {
+                            randCard.gameObject.SetActive(true);
+                            randCard.handIndex = i;
+
+                            randCard.transform.position = cardSlots[i].position;
+                            randCard.hasBeenPlayed = false;
+
+                            availableCardSlots[i] = false;
+                            deck.Remove(randCard);
+                            return;
+                        }
+                    }
+                }
+                else
+                {
+                    StartCoroutine(CantDraw());
+                }
+            }
+            else
+            {
+                Shuffle();
+                DrawCard();
+            }
+        }
+    }
+    IEnumerator CantDraw()
+    {
+        NoEnergy.SetActive(true);
+        energyText.text = ("I can't draw more cards");
+        yield return new WaitForSeconds(1.5f);
+        NoEnergy.SetActive(false);
+    }
+    public void Shuffle()
+    {
+        if (isPlayersTurn)
+        {
+            if (discardPile.Count >= 1)
+            {
+                foreach (Cards card in discardPile)
+                {
+                    if (card.bigger)
+                    {
+                        card.OnPointerExit();
+                    }
+                    deck.Add(card);
+                }
+                discardPile.Clear();
+            }
+        }
+    }
+    public void ShowAnimation(Image Animation, bool IsOnPlayer)
+    {
+        if (IsOnPlayer)
+        {
+            PlayerAnimation.sprite =Animation.sprite;
+            PlayerAnimation.gameObject.SetActive(true);
+            StartCoroutine(CombatAnimations());
+        }
+        else
+        {
+           OpponentAnimation.sprite = Animation.sprite;
+            OpponentAnimation.gameObject.SetActive(true);
+            StartCoroutine(CombatAnimations());
+        }
+    }
+    IEnumerator CombatAnimations()
+    {
+        yield return new WaitForSeconds(1f);
+        PlayerAnimation.gameObject.SetActive(false);
+        OpponentAnimation.gameObject.SetActive(false);
+    }
+    private void Update()
+    {
+        deckSizeText.text = "Deck Size: "  + deck.Count.ToString();
+        discardSizeText.text = "Discarded:" + discardPile.Count.ToString();
+            if (opponentStats.currentHealth <= 0 && !hasRewarded)
+            {
+                if (opponentStats.tag == "Boss"&&bossStage==1)
+                {
+                    animator.SetTrigger("FadeOut");
+                    Invoke("LoadJournal", 1f);
+                AS.clip = mainTheme;
+                AS.Play();
+            }
+                else if (opponentStats.tag == "Boss" && bossStage <= 1)
+            {
+                opponentStats.currentHealth = 65;
+                opponentStats.healthBar.slider.value = 65;
+                opponentStats.healthBar.text.text = (opponentStats.currentHealth + "/" + opponentStats.maxHealth);
+                BossText.SetActive(true);
+                Invoke("Bosstext", 1.5f);
+                bossStage++;
+            }
+                else
+                {
+                hasRewarded = true;
+                RewardPlayer();
+                }
+            }
+            else if (StatsManager.currentHealth <= 0)
+            {
+                JournalManager.defeated = true;
+                animator.SetTrigger("FadeOut");
+            AS.clip = mainTheme;
+            AS.Play();
+            Invoke("LoadJournal", 1f);
+        }
+            if (FetchEnabled&& FetchAnimation.transform.position.x<2.4f)
+        {
+            Vector3 direction = new Vector3((OpponentSlot.position - FetchAnimation.transform.position).x, 0, 0).normalized;
+            FetchAnimation.transform.Translate(direction * FetchSpeed * Time.deltaTime);
+        }
+        else
+        {
+            FetchAnimation.transform.position = new Vector3(-6.13f, 0.78f, -5.49f);
+        }
+    }
+    void Bosstext()
+    {
+        BossText.SetActive(false);
+    }
+    public void RewardPlayer()
+    {
+        Rewards.SetActive(true);
+                    if (opponentStats.cardReward != null)
+                     {
+                       GameObject reward = Instantiate(opponentStats.cardReward, new Vector3(0, 0, 0), Quaternion.identity, Rewards.transform);
+    reward.GetComponent<Button>().enabled= false;
+                      reward.transform.localScale=new Vector3(1, 1, 1);
+    reward.transform.position = RewardSlot.position;
+                   WispMoves wisp = FindObjectOfType<WispMoves>();
+                    if (wisp != null)
+                    {
+                        if (!Manager.WispBomb)
+                        {
+                             Textbox.SetActive(true);
+                            textbox.text = "please spare me, we did not want to hurt you";
+                         }
+                           else
+                          {
+                               Textbox.SetActive(true);
+                              textbox.text = "please spare us, we do not want to hurt you";
+                          }
+
+                    }
+
+                     }
+    }
+   public void AddButton()
+    {
+        switch (opponentStats.ID)
+        {
+            case 0:
+                if (!Manager.WispBomb)
+                {
+                    Manager.addedWispCard = true;
+                    JournalManager.tookLoneWisp = true;
+                    CollectionManager.UnlockedLoneWisp = true;
+                }
+                else
+                {
+                    Manager.addedWispBomb = true;
+                }
+                break;
+                case 1:
+                StatsManager.boneArmor= true;
+                JournalManager.tookBoneArmor= true;
+                CollectionManager.UnlockedBoneArmor = true;
+                break;
+            case 3:
+                Manager.addedFetchCard= true;
+                break;
+            case 4:
+                Manager.addedCoinWall = true;
+                break;
+
+        }
+        animator.SetTrigger("FadeOut");
+        AS.clip = mainTheme;
+        AS.Play();
+        Invoke("LoadScene", 1f);
+    }
+    public void SkipButton()
+    {
+        animator.SetTrigger("FadeOut");
+        AS.clip = mainTheme;
+        AS.Play();
+        Invoke("LoadScene", 1f);
+    }
+    void LoadScene()
+    {
+        SceneManager.LoadScene("SampleScene");
+    }
+    void LoadJournal()
+    {
+        SceneManager.LoadScene("DreamJournal");
+    }
+    public void ApplyEffect(int ID)
+    {
+        energyNumber.text = ("" + playerStats.mentalEnergy);
+        switch (ID)
+        {
+            case 0:
+                //Apply ID logic here
+                break;
+            case 1:
+                KickBall();
+                break;
+            case 2:
+                FlowerGift();
+                break;
+            case 3:
+                Meditate();
+                break;
+            case 4:
+                Boomerang();
+                break;
+            case 5:
+                LoneWisp();
+                break;
+            case 9:
+                Fetch();
+                break;
+            case 10:
+                WispBombCard();
+                break;
+            case 11:
+                CoinWall();
+                break;
+        }
+    }
+    public void KickBall()
+    {
+        ShowAnimation(BashAnimation, false);
+        opponentStats.TakeDamage(6);
+        opponentStats.vulnerability += 2;
+    }
+    public void FlowerGift()
+    {
+        ShowAnimation(CryAnimation, true);
+        opponentStats.weakened += 2;
+    }
+    public void Meditate()
+    {
+        ShowAnimation(BlockAnimation, true);
+        playerStats.block += 5+StatsManager.Immunity;
+        PlayerhpBar.block.text = ("" + playerStats.block);
+    }
+    public void Boomerang()
+    {
+        if (throws < 2)
+        {
+            throws++;
+            if (StatsManager.accurate)
+            {
+                ShowAnimation(BashAnimation, false);
+                opponentStats.TakeDamage(4);
+                int returns = Random.Range(0, 3);
+                if (returns == 1)
+                {
+                    Invoke("Boomerang", .5f);
+                }
+                else
+                {
+                    throws = 0;
+                }
+            }
+            else
+            {
+                ShowAnimation(BashAnimation, false);
+                opponentStats.TakeDamage(3);
+                int returns = Random.Range(0, 4);
+                if (returns == 1)
+                {
+                    Invoke("Boomerang", .5f);
+                }
+                else
+                {
+                    throws = 0;
+                }
+            }
+        }
+        else
+        {
+            throws = 0;
+        }
+    }
+    public void LoneWisp()
+    {
+        ShowAnimation(BashAnimation, false);
+        opponentStats.TakeDamage(10);
+        opponentStats.weakened += 2;
+    }
+    public void WispBombCard()
+    {
+        ShowAnimation(BashAnimation, false);
+        opponentStats.TakeDamage(20);
+        opponentStats.weakened += 3;
+    }
+    public void CoinWall()
+    {
+        ShowAnimation(BlockAnimation, true);
+        playerStats.block += 20 + StatsManager.Immunity;
+        PlayerhpBar.block.text = ("" + playerStats.block);
+    }
+    public void Fetch()
+    {
+        FetchAnimation.SetActive(true);
+        FetchEnabled = true;
+        ShowAnimation(BashAnimation, false);
+        opponentStats.TakeDamage(32);
+        opponentStats.vulnerability += 2;
+        Invoke("DisableFetch", .5f);
+    }
+    void DisableFetch()
+    {
+        FetchAnimation.SetActive(false);
+        FetchEnabled = false;
+    }
+    public void NoooEnergy()
+    {
+        StartCoroutine(NooEnergy());
+    }
+    public IEnumerator NooEnergy()
+    {
+        NoEnergy.SetActive(true);
+        energyText.text = ("I don't have any Energy");
+        yield return new WaitForSeconds(1.5f);
+        NoEnergy.SetActive(false);
+    }
+    public void ApplyBoneArmor()
+    {
+         if (StatsManager.boneArmor)
+        {
+            playerStats.block++;
+            PlayerhpBar.block.text = ("" + playerStats.block);
+        }
+    }
+    public void SetRain()
+    {
+       Rain.SetActive(true);
+    }
+}
