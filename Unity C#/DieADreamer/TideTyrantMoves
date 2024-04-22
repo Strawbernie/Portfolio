@@ -1,0 +1,154 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class TideTyrantMoves : MonoBehaviour
+{
+    private GameManager gm;
+    private OpponentStats opponentStats;
+    private PlayerStats playerStats;
+    private HealthBar hpBar;
+    private Effects Intent;
+    public Sprite attack;
+    public Sprite defense;
+    public Sprite effect;
+    private int ID;
+    void Start()
+    {
+        GameObject HPBar = GameObject.FindGameObjectWithTag("Opponent");
+        Intent = FindObjectOfType<Effects>();
+        hpBar = HPBar.GetComponent<HealthBar>();
+        gm = FindObjectOfType<GameManager>();
+        opponentStats = FindObjectOfType<OpponentStats>();
+        JournalManager.enemyID = 3;
+        playerStats = FindObjectOfType<PlayerStats>();
+        DecideMove();
+        CollectionManager.foughtTideTyrant = true;
+    }
+
+    void Update()
+    {
+        if (!gm.isPlayersTurn)
+        {
+            DoRandomMove();
+            if (opponentStats.vulnerability > 0)
+            {
+                opponentStats.vulnerability--;
+                if (opponentStats.vulnerability <= 0)
+                {
+                    hpBar.RemoveEffects(hpBar.Vulnerability);
+                }
+            }
+            if (opponentStats.weakened > 0)
+            {
+                opponentStats.weakened--;
+                if (opponentStats.weakened <= 0)
+                {
+                    hpBar.RemoveEffects(hpBar.Weakened);
+                }
+            }
+            playerStats.block = 0;
+            gm.isPlayersTurn = true;
+            gm.ApplyBoneArmor();
+        }
+    }
+    void DecideMove()
+    {
+        if(playerStats.vulnerability <= 0) 
+        {
+            ID = 0;
+        }
+        else
+        {
+            ID = Random.Range(0, 4);
+        }
+        switch (ID)
+        {
+            case 0:
+                hpBar.Intends.sprite = attack;
+                Intent.text = "This enemy intents to attack";
+                break;
+            case 1:
+                hpBar.Intends.sprite = attack;
+                Intent.text = "This enemy intents to attack";
+                break;
+            case 2:
+                hpBar.Intends.sprite = defense;
+                Intent.text = "This enemy intents to block";
+                break;
+            case 3:
+                if (opponentStats.currentHealth >= opponentStats.maxHealth)
+                {
+                    DecideMove();
+                }
+                else
+                {
+                    hpBar.Intends.sprite = effect;
+                    Intent.text = "This enemy intents to heal";
+                }
+                break;
+        }
+    }
+    void DoRandomMove()
+    {
+        switch (ID)
+        {
+            case 0:
+                if(gm.bossStage== 0)
+                {
+                    gm.ShowAnimation(gm.BashAnimation, true);
+                    playerStats.TakeDamage(10);
+                    playerStats.weakened += 2;
+                    playerStats.vulnerability += 2;
+                }
+                else if (gm.bossStage== 1)
+                {
+                    gm.ShowAnimation(gm.BashAnimation, true);
+                    playerStats.TakeDamage(15);
+                    playerStats.weakened += 3;
+                    playerStats.vulnerability += 3;
+                }
+                gm.SetRain();
+                break;
+            case 1:
+                if (gm.bossStage == 0)
+                {
+                    gm.ShowAnimation(gm.BashAnimation, true);
+                    playerStats.TakeDamage(15);
+                    opponentStats.block += 5;
+                    hpBar.block.text = ("" + opponentStats.block);
+                }
+                else if (gm.bossStage == 1)
+                {
+                    gm.ShowAnimation(gm.BashAnimation, true);
+                    playerStats.TakeDamage(20);
+                    opponentStats.block += 8;
+                    hpBar.block.text = ("" + opponentStats.block);
+                }
+                break;
+            case 2:
+                gm.ShowAnimation(gm.BlockAnimation, false);
+                opponentStats.block += 20;
+                hpBar.block.text = ("" + opponentStats.block);
+                break;
+            case 3:
+                if (opponentStats.currentHealth >= opponentStats.maxHealth)
+                {
+                    DoRandomMove();
+                }
+                else
+                {
+                    gm.ShowAnimation(gm.HealAnimation, false);
+                    opponentStats.Heal(12);
+                    if (opponentStats.currentHealth > opponentStats.maxHealth)
+                    {
+                        opponentStats.currentHealth = opponentStats.maxHealth;
+                        opponentStats.healthBar.text.text = (opponentStats.currentHealth + "/" + opponentStats.maxHealth);
+                    }
+                }
+                break;
+        }
+        DecideMove();
+    }
+}
