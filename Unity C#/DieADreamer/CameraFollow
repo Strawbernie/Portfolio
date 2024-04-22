@@ -1,0 +1,76 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CameraFollow : MonoBehaviour
+{
+    public Transform target;
+    public Vector3 offset;            
+    public float followSpeed = 5f;
+    public bool zoomInEnabled = false;
+    public float zoomSpeed = 2f;
+    public float zoomAmount = 2f;
+    public float rotationSpeed = 100f;
+    private bool rotateLeft = false;
+    private bool rotateRight = false;
+
+    public Camera mainCamera;
+
+
+    private void Update()
+    {
+        Vector3 targetPosition = target.position + offset;
+        Vector3 currentPosition = transform.position;
+
+        if (!zoomInEnabled)
+        {
+            float oldZoom = Mathf.Lerp(mainCamera.orthographicSize, 4f, zoomSpeed * Time.deltaTime);
+            mainCamera.orthographicSize = oldZoom;
+
+            Vector3 newPosition = Vector3.Lerp(currentPosition, targetPosition, followSpeed * Time.deltaTime);
+            transform.position = new Vector3(newPosition.x, newPosition.y, newPosition.z);
+        }
+        else
+        {
+            float newZoom = Mathf.Lerp(mainCamera.orthographicSize, zoomAmount, zoomSpeed * Time.deltaTime);
+            mainCamera.orthographicSize = newZoom;
+
+            Vector3 newPosition = Vector3.Lerp(currentPosition, targetPosition, followSpeed * Time.deltaTime);
+            transform.position = new Vector3(newPosition.x, newPosition.y, newPosition.z);
+        }
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            rotateLeft = true;
+        }
+        if (Input.GetKeyUp(KeyCode.E))
+        {
+            rotateLeft = false;
+        }
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            rotateRight = true;
+        }
+        if (Input.GetKeyUp(KeyCode.Q))
+        {
+            rotateRight = false;
+        }
+        if (rotateLeft)
+        {
+            RotateCamera(-20.0f);
+        }
+        else if (rotateRight)
+        {
+            RotateCamera(20.0f);
+        }
+        else
+        {
+            RotateCamera(0.0f);
+        }
+    }
+    void RotateCamera(float targetRotation)
+    {
+        float step = rotationSpeed * Time.deltaTime;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(17, targetRotation, 0), step);
+    }
+}
