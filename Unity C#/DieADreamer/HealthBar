@@ -1,0 +1,53 @@
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class HealthBar : MonoBehaviour
+{
+    public Slider slider;
+    public Gradient gradient;
+    public Image fill;
+    public TextMeshProUGUI text;
+    public TextMeshProUGUI block;
+    public TextMeshProUGUI vulnerability;
+    public TextMeshProUGUI weakened;
+    public Transform[] effectSlots;
+    public Image Intends;
+    public TextMeshProUGUI Intent;
+    public bool[] availableEffectSlots;
+    public Effects Vulnerability;
+    public Effects Weakened;
+    public int maxHealth;
+    public void SetMaxHealth(int health)
+    {
+        slider.maxValue= maxHealth;
+        slider.value = health;
+        fill.color = gradient.Evaluate(1f);
+    }
+    public void SetHealth(int health)
+    {
+        slider.value = health;
+        fill.color = gradient.Evaluate(slider.normalizedValue);
+    }
+    public void UpdateEffects(Effects effectToAdd)
+    {
+        for (int i = 0; i < availableEffectSlots.Length; i++)
+        {
+            if (availableEffectSlots[i])
+            {
+                effectToAdd.gameObject.SetActive(true);
+                effectToAdd.listIndex = i;
+                effectToAdd.transform.position = effectSlots[i].position;
+                availableEffectSlots[i] = false;
+                return;
+            }
+        }
+    }
+    public void RemoveEffects(Effects effectToAdd)
+    {
+        effectToAdd.gameObject.SetActive(false);
+        availableEffectSlots[effectToAdd.listIndex] = true;
+    }
+    }
